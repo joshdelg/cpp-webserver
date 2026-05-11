@@ -1,8 +1,10 @@
 #include <iostream>
+#include <string>
+
+#include "greeting.h"
 
 int main() {
-
-    std::cout << "Hello, world!" << std::endl;
-
+    std::string name = "Josh";
+    say_hello(name);
     return 0;
 }
