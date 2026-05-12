@@ -8,3 +8,6 @@ cmake -B build
 cd build
 cmake --build . --parallel
 ```
+
+## Questions
+1. Does setting c++=11 limit the use of newer C++ features?
