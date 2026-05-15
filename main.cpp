@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "sockets/socket_manager.h"
+
 void handle_connection(int new_socket_fd) {
     char buffer[256];
     int bytes_read = read(new_socket_fd, buffer, 255);
@@ -24,13 +26,19 @@ void handle_connection(int new_socket_fd) {
 }
 
 int main(int argc, char* argv[]) {
-    
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <port>" << std::endl;
         exit(1);
     }
     
     int port = atoi(argv[1]);
+
+    SocketManager socket_manager(port);
+
+    socket_manager.start();
+    socket_manager.stop();
+
+    return 0;
     
     std::cout << "Initializing server on port " << port << std::endl;
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
