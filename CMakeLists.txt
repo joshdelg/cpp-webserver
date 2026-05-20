@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 4.1)
 project(webserver)
 
+set(CMAKE_CXX_STANDARD 20)
+
 # Configure an "output" -- executable named PROJECT_NAME built from SOURCE_FILES
 add_executable(${PROJECT_NAME} main.cpp)
 
