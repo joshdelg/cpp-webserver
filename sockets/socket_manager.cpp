@@ -1,4 +1,7 @@
 #include <iostream>
+#include <regex>
+#include <string>
+#include <string_view>
 
 #include "socket_manager.h"
 
@@ -31,17 +34,50 @@ void SocketManager::_accept_loop() {
 void SocketManager::_handle_connection(int fd) {
     char buffer[256];
     int bytes_read = read(fd, buffer, 255);
+    buffer[bytes_read] = 0;
 
     if(bytes_read < 0) {
         std::cout << "Error reading from buffer" << std::endl;
+    } else {
+        std::cout << "Read " << bytes_read << " bytes" << std::endl;
     }
 
     std::cout << "Here is the message: " << buffer << std::endl;
 
-    bytes_read = write(fd, "I got your message", 18);
+    const std::regex r("GET.*\r\nHost: (.*)", std::regex_constants::ECMAScript | std::regex_constants::icase);
+    std::cmatch match;
+
+    if(std::regex_search(buffer, match, r)) {
+        std::cout << "Request is valid GET" << std::endl;
+
+        std::cout << "Host is: " << match[0] << std::endl;
+    } else {
+        std::cout << "invalid request" << std::endl;
+        close(fd);
+        return;
+    }
+
+    constexpr std::string_view body =
+        "<!DOCTYPE html><html><head><title>Success</title></head><body>"
+        "<h1>Hello, the request was successful!</h1></body></html>";
+
+    const std::string resp =
+        "HTTP/1.1 200 OK\r\n"
+        "Date: Mon, 19 May 2026 21:18:00 GMT\r\n"
+        "Server: cpp-webserver\r\n"
+        "Content-Type: text/html; charset=UTF-8\r\n"
+        "Content-Length: " + std::to_string(body.size()) + "\r\n"
+        "Connection: close\r\n"
+        "\r\n" + std::string(body);
+
+    bytes_read = write(fd, resp.data(), resp.size());
     if (bytes_read < 0) {
         std::cout << "Error writing to socket :(" << std::endl;
+    } else {
+        std::cout << "Wrote " << bytes_read << std::endl;
     }
+
+    close(fd);
 }
 
 SocketManager::SocketManager(int port) : _port(port) {

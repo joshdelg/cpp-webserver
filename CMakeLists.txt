@@ -9,9 +9,11 @@ add_executable(${PROJECT_NAME} main.cpp)
 # Link our libraries in
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        SocketManager)
+        SocketManager
+        Parser)
 
 add_library(SocketManager)
+add_library(Parser)
 
 # Build our libraries
 target_sources(SocketManager
@@ -22,4 +24,15 @@ target_sources(SocketManager
             sockets
         FILES
             sockets/socket_manager.h
+)
+
+# Build our libraries
+target_sources(Parser
+    PRIVATE parser/parser.cpp
+    PUBLIC 
+        FILE_SET HEADERS
+        BASE_DIRS
+            parser
+        FILES
+            parser/parser.h
 )
