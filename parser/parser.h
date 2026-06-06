@@ -43,9 +43,12 @@ enum ParserState {
     ColonOWSFieldValue,
     FieldValue,
     FieldValueOWS,
-    FieldLineEnd,
+    FieldLineEndCR,
+    FieldLineEndLF,
+    FieldLineNextOrEnd,
     // CRLF between field line and message body
-    FieldLineEndEndMessageBody,
+    FieldLineEndEndMessageBodyCR,
+    FieldLineEndEndMessageBodyLF,
     // message body
     MessageBody,
 
@@ -79,6 +82,10 @@ private:
     HTTPRequest _req;
     
     int _cursor;
+
+    // Temporary accumulators for fields that are "committed"
+    std::string _current_field_name;
+    std::string _current_field_value;
 
     void set_parser_status(ParserStatus new_status) { _parser_status = new_status; }
     ParserStatus get_parser_status() { return _parser_status; }
@@ -211,4 +218,9 @@ static inline bool is_tchar(const char c) {
 
 static inline bool is_pchar(const char c) {
     return is_unreserved(c) || is_subdelim(c) || ':' || '@';
+}
+
+// VCHAR = %x21-7E (any visible US-ASCII character)
+static inline bool is_vchar(const char c) {
+    return c >= 0x21 && c <= 0x7E;
 }

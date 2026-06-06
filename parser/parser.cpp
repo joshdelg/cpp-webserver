@@ -206,50 +206,126 @@ HTTPRequest Parser::parse_request() {
                 break;
             }
             case FieldName: {
-                // TODO: consume field name token
+                std::string token = consume_while(is_tchar);
+                _current_field_name.append(token);
+
+                // If we're not OOB, but finished, check if we can transit
+                if(!set_status_waiting_if_oob()) {
+                    if(current_char_is(':')) {
+                        set_parser_state(FieldColon);
+                    } else {
+                        set_parser_status(Error);
+                    }
+                }
+                
                 break;
             }
             case FieldColon: {
-                // TODO: consume ':' after field name
+                bool success = consume_one(':');
+
+                if(!success) {
+                    set_parser_status(Error);
+                    break;
+                }
+                
+                set_parser_state(ColonOWSFieldValue);
                 break;
             }
             case ColonOWSFieldValue: {
-                // TODO: consume optional whitespace after ':'
+                std::string ignore = consume_while(is_whitespace);
+
+                if(!set_status_waiting_if_oob()) set_parser_state(FieldValue);
+
                 break;
             }
+            // TODO: Handle multi-value headers
             case FieldValue: {
-                // TODO: consume field value
+                std::string token = consume_while(is_vchar);
+                _current_field_value.append(token);
+
+                if(!set_status_waiting_if_oob()) set_parser_state(FieldValueOWS);
+
                 break;
             }
             case FieldValueOWS: {
-                // TODO: consume optional whitespace before field line end
+                std::string ignore = consume_while(is_whitespace);
+
+                if(!set_status_waiting_if_oob()) set_parser_state(FieldLineEndCR);
                 break;
             }
-            case FieldLineEnd: {
-                // TODO: consume CRLF after field line
+            case FieldLineEndCR: {
+                bool success = consume_one('\r');
+
+                if(!success) {
+                    set_parser_status(Error);
+                } else {
+                    set_parser_state(FieldLineEndLF);
+                }
                 break;
             }
-            case FieldLineEndEndMessageBody: {
-                // TODO: consume CRLF between headers and message body
+            case FieldLineEndLF: {
+                bool success = consume_one('\n');
+
+                if(!success) {
+                    set_parser_status(Error);
+                } else {
+                    set_parser_state(FieldLineNextOrEnd);
+
+                    // Commit field
+                    _req.headers[_current_field_name] = _current_field_value;
+                    _current_field_name.clear();
+                    _current_field_value.clear();
+                }
+
+                break;
+            }
+            case FieldLineNextOrEnd: {
+                if(current_char_is(is_tchar)) {
+                    set_parser_state(FieldName);
+                } else if(current_char_is('\r')) {
+                    set_parser_state(FieldLineEndEndMessageBodyCR);
+                } else {
+                    set_parser_status(Error);
+                }
+
+                break;
+            }
+            case FieldLineEndEndMessageBodyCR: {
+                bool success = consume_one('\r');
+
+                if(!success) {
+                    set_parser_status(Error);
+                } else {
+                    set_parser_state(FieldLineEndEndMessageBodyLF);
+                }
+
+                break;
+            }
+            case FieldLineEndEndMessageBodyLF: {
+                bool success = consume_one('\n');
+
+                if(!success) {
+                    set_parser_status(Error);
+                } else {
+                    set_parser_state(MessageBody);
+                }
+
                 break;
             }
             case MessageBody: {
-                // TODO: consume message body
+                std::string body = consume_while([](const char c) { return true; });
+                _req.body->append(body);
+
+                if(!set_status_waiting_if_oob()) {
+                    set_parser_state(Finished);
+                }
                 break;
             }
             case Finished: {
                 break;
             }
-
-            // TEMP: Advance to the end so we can see if the earlier stuff parsed
-            default: {
-                _cursor++;
-                break;
-            }
         }
     }
-
-    if(get_parser_status() != Error) set_parser_state(Finished);
 
     return _req;
 }
